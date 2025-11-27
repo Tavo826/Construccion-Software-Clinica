@@ -1,0 +1,801 @@
+<div class="nurse-container">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <h1 class="page-title">Atención de Pacientes</h1>
+        <p class="page-subtitle">Personal médico</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-secondary" (click)="logout()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search Section -->
+  <section class="search-section">
+    <div class="search-bar">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.35-4.35" />
+      </svg>
+      <input type="text" class="search-input" placeholder="Buscar paciente por documento" [(ngModel)]="searchTerm">
+    </div>
+    <button class="btn-primary" (click)="findPatientById()">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="10" r="8" />
+        <line x1="15" y1="15" x2="20" y2="20" />
+      </svg>
+      Buscar
+    </button>
+  </section>
+
+  <!-- Main Content -->
+  <div class="">
+    @if (!isLoading) {
+    <section class="details-panel">
+      @if (selectedPatient) {
+      <!-- Patient Header -->
+      <div class="patient-header">
+        <div class="patient-main-info">
+          <div>
+            <h2>{{ selectedPatient.name }} {{ selectedPatient.surname }}</h2>
+            <p>CC: {{ selectedPatient.documentId }} | {{ selectedPatient.age }} años | {{ selectedPatient.gender ==
+              'MALE' ? 'HOMBRE' : 'MUJER' }}</p>
+            <p class="doctor-info">Médico tratante: {{ selectedOrder?.employeeId || 'Sin asignar' }}</p>
+          </div>
+        </div>
+        <div class="header-badges">
+          <span class="badge" [ngClass]="selectedPatient.healthInsurance.active ? 'badge-active' : 'badge-inactive'">
+            {{ selectedPatient.healthInsurance.active ? 'Póliza Activa' : 'Póliza Inactiva' }}
+          </span>
+          <button class="btn-secondary" (click)="saveOrder()" [disabled]="!selectedOrder || 
+                              (selectedOrder.orderMedicineList.length === 0 && 
+                                selectedOrder.orderProcedureList.length === 0 && 
+                                selectedOrder.orderDiagnosticAssistanceList.length === 0)">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            Guardar Orden Completa
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <button class="detail-tab" [class.active]="activeDetailTab === 'clinical_info'"
+        (click)="switchDetailTab('clinical_info')">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        Información Clínica
+      </button>
+      <div class="detail-tabs">
+        <button class="detail-tab" [class.active]="activeDetailTab === 'diagnostics'"
+          (click)="switchDetailTab('diagnostics')">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 2h6v2H9V2z" />
+            <path d="M7 4h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+            <path d="M9 12h6M9 16h6" />
+          </svg>
+          Ayuda Diagnóstica
+        </button>
+        <button class="detail-tab" [class.active]="activeDetailTab === 'medications'"
+          (click)="switchDetailTab('medications')" [disabled]="!selectedOrder?.orderDiagnosticAssistanceList?.length">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+            <path d="m8.5 8.5 7 7" />
+          </svg>
+          Medicamentos
+        </button>
+        <button class="detail-tab" [class.active]="activeDetailTab === 'procedures'"
+          (click)="switchDetailTab('procedures')" [disabled]="!selectedOrder?.orderDiagnosticAssistanceList?.length">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          Procedimientos
+        </button>
+        <button class="detail-tab" [class.active]="activeDetailTab === 'history'" (click)="switchDetailTab('history')">
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          Historial
+        </button>
+      </div>
+
+      @if (activeDetailTab === 'clinical_info') {
+      <div class="tab-content">
+        <div class="content-header">
+          <h3>Detalles de la Consulta</h3>
+          <button class="btn-primary" (click)="saveClinicalInfo()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            Guardar Cambios
+          </button>
+        </div>
+
+        <div class="form-container"
+          style="padding: 1.5rem; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <form class="form-grid">
+
+            <div class="form-group">
+              <label for="date" class="form-label">
+                <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Fecha de atención
+              </label>
+              <input type="date" id="date" class="form-input" required
+                [formControl]="recordForm.controls.date">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">ID Médico Tratante</label>
+              <input type="number" class="form-input" 
+                [formControl]="recordForm.controls.employeeId" name="employeeId"
+                placeholder="Ingrese ID del empleado">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Diagnóstico Principal</label>
+              <input type="text" class="form-input"
+                [formControl]="recordForm.controls.diagnosis" name="diagnosis"
+                placeholder="Diagnóstico del paciente">
+            </div>
+
+            <div class="form-group span-2" style="grid-column: span 2;">
+              <label class="form-label">Motivo de la Consulta</label>
+              <textarea class="form-input" rows="3"
+                [formControl]="recordForm.controls.reason" name="reason"
+                placeholder="Describa el motivo de consulta..."></textarea>
+            </div>
+
+            <div class="form-group span-2" style="grid-column: span 2;">
+              <label class="form-label">Sintomatología</label>
+              <textarea class="form-input" rows="4" 
+                [formControl]="recordForm.controls.symptomatology" name="symptomatology"
+                placeholder="Describa los síntomas presentados..."></textarea>
+            </div>
+
+          </form>
+        </div>
+      </div>
+      }
+
+      <!-- Medications Tab -->
+      @if (activeDetailTab === 'medications') {
+      <div class="tab-content">
+        <div class="content-header">
+          <h3>Medicamentos de la Orden #{{ selectedOrder?.orderNumber }}</h3>
+          <button class="btn-primary" (click)="openMedicationModal()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Registrar Medicamento
+          </button>
+        </div>
+
+        <div class="medications-list">
+          @for (med of selectedOrder?.orderMedicineList; track med.itemNumber) {
+          <div class="medication-card">
+            <div class="medication-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+            </div>
+            <div class="medication-info">
+              <div class="medication-header">
+                <strong>{{ med.medicineName }}</strong>
+              </div>
+              <p class="medication-details">
+                <span>Ítem: {{ med.itemNumber }}</span>
+                <span>Dosis: {{ med.dose }}</span>
+                <span>Duración tratamiento: {{ med.treatmentDuration }}</span>
+              </p>
+            </div>
+          </div>
+          } @empty {
+          <div class="empty-state">
+            <p>No hay medicamentos en esta orden</p>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Procedures Tab -->
+      @if (activeDetailTab === 'procedures') {
+      <div class="tab-content">
+        <div class="content-header">
+          <h3>Procedimientos de la Orden #{{ selectedOrder?.orderNumber }}</h3>
+          <button class="btn-primary" (click)="openProcedureModal()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Registrar Procedimiento
+          </button>
+        </div>
+
+        <div class="procedures-list">
+          @for (proc of selectedOrder?.orderProcedureList; track proc.itemNumber) {
+          <div class="procedure-card">
+            <div class="procedure-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+            </div>
+            <div class="procedure-info">
+              <div class="procedure-header">
+                <strong>{{ proc.procedureName }}</strong>
+              </div>
+              <p class="procedure-details">
+                <span>Ítem: {{ proc.itemNumber }}</span>
+                <span>Cantidad: {{ proc.repetitionNumber }}</span>
+                <span>Frecuencia: {{ proc.repetitionFrequency }}</span>
+              </p>
+              @if (proc.requiresSpecialistAssistance) {
+              <p class="procedure-specialist">Especialista: {{ proc.specialistId }}</p>
+              }
+            </div>
+          </div>
+          } @empty {
+          <div class="empty-state">
+            <p>No hay procedimientos en esta orden</p>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Diagnostics Tab -->
+      @if (activeDetailTab === 'diagnostics') {
+      <div class="tab-content">
+        <div class="content-header">
+          <h3>Ayudas Diagnósticas de la Orden #{{ selectedOrder?.orderNumber }}</h3>
+          <button class="btn-primary" (click)="openDiagnosticModal()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Registrar Ayuda Diagnóstica
+          </button>
+        </div>
+
+        <div class="diagnostics-list">
+          @for (diag of selectedOrder?.orderDiagnosticAssistanceList; track diag.itemNumber) {
+          <div class="diagnostic-card">
+            <div class="diagnostic-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 2h6v2H9V2z" />
+                <path d="M7 4h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+              </svg>
+            </div>
+            <div class="diagnostic-info">
+              <div class="diagnostic-header">
+                <strong>{{ diag.diagnosticAssistanceName }}</strong>
+              </div>
+              <p class="diagnostic-details">
+                <span>Ítem: {{ diag.itemNumber }}</span>
+                <span>Cantidad: {{ diag.quantity }}</span>
+              </p>
+            </div>
+          </div>
+          } @empty {
+          <div class="empty-state">
+            <p>No hay ayudas diagnósticas en esta orden</p>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      @if (activeDetailTab === 'history') {
+      <div class="tab-content">
+        <div class="content-header">
+          <h3>Historial Clínico del Paciente</h3>
+        </div>
+
+        <div class="history-list">
+          @for (record of selectedRecord?.clinicalRecords | keyvalue; track record.key) {
+            
+            <details class="history-card">
+              <summary class="history-summary">
+                <div class="summary-date">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  <span>{{ record.value.date | date:'mediumDate' }}</span>
+                </div>
+                <div class="summary-info">
+                  <strong>{{ record.value.diagnosis }}</strong>
+                  <span class="sub-text">Dr. ID: {{ record.value.employeeId }}</span>
+                </div>
+                <div class="summary-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </summary>
+
+              <div class="history-details">
+                <div class="detail-grid">
+                  <div class="detail-item full-width">
+                    <label>Motivo de Consulta:</label>
+                    <p>{{ record.value.reason }}</p>
+                  </div>
+                  <div class="detail-item full-width">
+                    <label>Sintomatología:</label>
+                    <p>{{ record.value.symptomatology }}</p>
+                  </div>
+                </div>
+
+                <hr class="divider">
+
+                @if (record.value.medicationList && record.value.medicationList.length > 0) {
+                  <div class="sub-section">
+                    <h4>Medicamentos Recetados</h4>
+                    <div class="table-responsive">
+                      <table class="simple-table">
+                        <thead>
+                          <tr>
+                            <th>Medicina (ID)</th>
+                            <th>Dosis</th>
+                            <th>Duración</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (med of record.value.medicationList; track med.itemId) {
+                            <tr>
+                              <td>{{ med.medicineId }}</td>
+                              <td>{{ med.dose }}</td>
+                              <td>{{ med.treatmentDuration }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                }
+
+                @if (record.value.procedureList && record.value.procedureList.length > 0) {
+                  <div class="sub-section">
+                    <h4>Procedimientos Ordenados</h4>
+                    <div class="table-responsive">
+                      <table class="simple-table">
+                        <thead>
+                          <tr>
+                            <th>Procedimiento (ID)</th>
+                            <th>Repetición</th>
+                            <th>Especialista</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (proc of record.value.procedureList; track proc.itemId) {
+                            <tr>
+                              <td>{{ proc.procedureId }}</td>
+                              <td>{{ proc.repetitionNumber }} veces ({{ proc.repetitionFrequency }})</td>
+                              <td>
+                                @if(proc.requiresSpecialistAssistance) {
+                                  <span class="tag-specialist">ID: {{ proc.specialistId }}</span>
+                                } @else {
+                                  -
+                                }
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                }
+
+                @if (record.value.diagnosticAssistanceList && record.value.diagnosticAssistanceList.length > 0) {
+                  <div class="sub-section">
+                    <h4>Ayudas Diagnósticas</h4>
+                    <ul class="list-bulleted">
+                      @for (diag of record.value.diagnosticAssistanceList; track diag.itemId) {
+                        <li>
+                          <strong>{{ diag.diagnosticAssistanceId }}</strong> - Cantidad: {{ diag.quantity }}
+                          @if(diag.requiresSpecialistAssistance) {
+                             (Requiere Esp. ID: {{ diag.specialistId }})
+                          }
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+            </details>
+          } @empty {
+            <div class="empty-state">
+              <p>No hay historial clínico registrado para este paciente.</p>
+            </div>
+          }
+        </div>
+      </div>
+      }
+
+      } @else {
+      <div class="no-selection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+        </svg>
+        <h3>Busque un paciente</h3>
+      </div>
+      }
+    </section>
+    } @else {
+    <app-loading></app-loading>
+    }
+  </div>
+
+  <!-- Modal: Aplicar Medicamento -->
+  <div class="modal-overlay" [class.active]="showMedicationModal">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <h2 class="modal-title">Registrar Aplicación de Medicamento</h2>
+        <button class="btn-close" (click)="closeMedicationModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Info de la Orden -->
+      <div class="order-info-banner">
+        <h4>Información de la Orden</h4>
+        <div class="order-info-grid">
+          <div><strong>Orden Nº:</strong> {{ selectedOrder?.orderNumber }}</div>
+          <div><strong>Paciente:</strong> {{ selectedOrder?.patientId }}</div>
+          <div><strong>Médico:</strong> {{ selectedOrder?.employeeId }}</div>
+          <div><strong>Fecha:</strong> {{ selectedOrder?.creationDate }}</div>
+        </div>
+      </div>
+
+      <form class="modal-form" (ngSubmit)="saveOrderMedication()" [formGroup]="medicationForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Nombre del medicamento *</label>
+            <input type="text" class="form-input" name="medicineName" required
+              [formControl]="medicationForm.controls.medicineName">
+            <div *ngIf="medicationForm.controls.medicineName.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!medicationForm.controls.medicineName.errors['required']">
+                El nombre es requerido
+              </div>
+              <div [hidden]="!medicationForm.controls.medicineName.errors['minlength']">
+                El nombre debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Dosis *</label>
+            <input type="text" class="form-input" name="dose" required [formControl]="medicationForm.controls.dose">
+            <div *ngIf="medicationForm.controls.dose.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!medicationForm.controls.dose.errors['required']">
+                La dosis es requerida
+              </div>
+              <div [hidden]="!medicationForm.controls.dose.errors['minlength']">
+                La dosis debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Duración del tratamiento *</label>
+            <input type="text" class="form-input" name="treatmentDuration" required
+              [formControl]="medicationForm.controls.treatmentDuration">
+            <div *ngIf="medicationForm.controls.treatmentDuration.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!medicationForm.controls.treatmentDuration.errors['required']">
+                El tratamiento es requerido
+              </div>
+              <div [hidden]="!medicationForm.controls.treatmentDuration.errors['minlength']">
+                El tratamiento debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Precio *</label>
+            <input type="text" class="form-input" name="price" required [formControl]="medicationForm.controls.price">
+            <div *ngIf="medicationForm.controls.price.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!medicationForm.controls.price.errors['required']">
+                El precio es requerido
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" (click)="closeMedicationModal()">Cancelar</button>
+          <button type="submit" class="btn-primary">Registrar Medicamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Registrar Procedimiento -->
+  <div class="modal-overlay" [class.active]="showProcedureModal">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <h2 class="modal-title">Registrar Procedimiento Realizado</h2>
+        <button class="btn-close" (click)="closeProcedureModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Info de la Orden -->
+      <div class="order-info-banner">
+        <h4>Información de la Orden</h4>
+        <div class="order-info-grid">
+          <div><strong>Orden Nº:</strong> {{ selectedOrder?.orderNumber }}</div>
+          <div><strong>Paciente:</strong> {{ selectedOrder?.patientId }}</div>
+          <div><strong>Médico:</strong> {{ selectedOrder?.employeeId }}</div>
+          <div><strong>Fecha:</strong> {{ selectedOrder?.creationDate }}</div>
+        </div>
+      </div>
+
+      <form class="modal-form" (ngSubmit)="saveOrderProcedure()" [formGroup]="procedureForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Nombre de procedimiento *</label>
+            <input type="text" class="form-input" name="procedureName" required
+              [formControl]="procedureForm.controls.procedureName">
+            <div *ngIf="procedureForm.controls.procedureName.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!procedureForm.controls.procedureName.errors['required']">
+                El nombre es requerido
+              </div>
+              <div [hidden]="!procedureForm.controls.procedureName.errors['minlength']">
+                El nombre debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Veces que se repite *</label>
+            <input type="number" class="form-input" name="repetitionNumber" required
+              [formControl]="procedureForm.controls.repetitionNumber">
+            <div *ngIf="procedureForm.controls.repetitionNumber.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!procedureForm.controls.repetitionNumber.errors['required']">
+                El valor es requerido
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Frecuencia con que se repite *</label>
+            <input type="text" class="form-input" name="repetitionFrequency" required
+              [formControl]="procedureForm.controls.repetitionFrequency">
+            <div *ngIf="procedureForm.controls.repetitionFrequency.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!procedureForm.controls.repetitionFrequency.errors['required']">
+                La frecuencia requerida
+              </div>
+              <div [hidden]="!procedureForm.controls.repetitionFrequency.errors['minlength']">
+                La frecuencia debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+          <div class="form-group span-2">
+            <label class="checkbox-label">
+              <input type="checkbox" id="active" [formControl]="procedureForm.controls.requiresSpecialistAssistance">
+              <span>Requiere asistencia de especialista</span>
+            </label>
+          </div>
+          <div class="form-group" *ngIf="procedureForm.controls.requiresSpecialistAssistance.value">
+            <label class="form-label">
+              Documento del especialista *
+            </label>
+            <input type="number" class="form-input" name="specialistId"
+              [formControl]="procedureForm.controls.specialistId">
+            <div *ngIf="procedureForm.controls.specialistId.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div *ngIf="procedureForm.controls.specialistId.errors['required']">
+                El valor es requerido
+              </div>
+              <div *ngIf="procedureForm.controls.specialistId.errors['minlength']">
+                La documento debe tener más de 8 caracteres
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Precio *</label>
+            <input type="text" class="form-input" name="price" required [formControl]="procedureForm.controls.price">
+            <div *ngIf="procedureForm.controls.price.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!procedureForm.controls.price.errors['required']">
+                El precio es requerido
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Presión sanguínea *</label>
+            <input type="text" class="form-input" name="bloodPressure" required
+              [formControl]="procedureForm.controls.healthDetail.controls.bloodPressure">
+            <div *ngIf="procedureForm.controls.healthDetail.controls.bloodPressure.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!procedureForm.controls.healthDetail.controls.bloodPressure.errors['required']">
+                La presión sanguínea es requerida
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Temperatura *</label>
+            <input type="text" class="form-input" name="temperature" required
+              [formControl]="procedureForm.controls.healthDetail.controls.temperature">
+            <div *ngIf="procedureForm.controls.healthDetail.controls.temperature.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!procedureForm.controls.healthDetail.controls.temperature.errors['required']">
+                La temperatura es requerida
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pulso *</label>
+            <input type="text" class="form-input" name="pulse" required
+              [formControl]="procedureForm.controls.healthDetail.controls.pulse">
+            <div *ngIf="procedureForm.controls.healthDetail.controls.pulse.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!procedureForm.controls.healthDetail.controls.pulse.errors['required']">
+                El pulso es requerido
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nivel de oxígeno en sangre *</label>
+            <input type="text" class="form-input" name="bloodOxygenLevel" required
+              [formControl]="procedureForm.controls.healthDetail.controls.bloodOxygenLevel">
+            <div *ngIf="procedureForm.controls.healthDetail.controls.bloodOxygenLevel.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!procedureForm.controls.healthDetail.controls.bloodOxygenLevel.errors['required']">
+                El pulso sanguínea es requerido
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" (click)="closeProcedureModal()">Cancelar</button>
+          <button type="submit" class="btn-primary">Registrar Procedimiento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Registrar Ayuda Diagnóstica -->
+  <div class="modal-overlay" [class.active]="showDiagnosticModal">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <h2 class="modal-title">Registrar Ayuda Diagnóstica Realizada</h2>
+        <button class="btn-close" (click)="closeDiagnosticModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Info de la Orden -->
+      <div class="order-info-banner">
+        <h4>Información de la Orden</h4>
+        <div class="order-info-grid">
+          <div><strong>Orden Nº:</strong> {{ selectedOrder?.orderNumber }}</div>
+          <div><strong>Paciente:</strong> {{ selectedOrder?.patientId }}</div>
+          <div><strong>Médico:</strong> {{ selectedOrder?.employeeId }}</div>
+          <div><strong>Fecha:</strong> {{ selectedOrder?.creationDate }}</div>
+        </div>
+      </div>
+
+      <form class="modal-form" (ngSubmit)="saveOrderDiagnosticAssistance()" [formGroup]="diagnosticAssistanceForm">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label class="form-label">Nombre ayuda diagnóstica *</label>
+            <input type="text" class="form-input" name="diagnosticAsistanceName" required
+              [formControl]="diagnosticAssistanceForm.controls.diagnosticAssistanceName">
+            <div *ngIf="diagnosticAssistanceForm.controls.diagnosticAssistanceName.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!diagnosticAssistanceForm.controls.diagnosticAssistanceName.errors['required']">
+                El nombre de la ayuda diagnóstica es requerido
+              </div>
+              <div [hidden]="!diagnosticAssistanceForm.controls.diagnosticAssistanceName.errors['minlength']">
+                El nombre de la ayuda diagnóstica debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cantidad *</label>
+            <input type="text" class="form-input" name="quantity" required
+              [formControl]="diagnosticAssistanceForm.controls.quantity">
+            <div *ngIf="diagnosticAssistanceForm.controls.quantity.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!diagnosticAssistanceForm.controls.quantity.errors['required']">
+                El pulso sanguínea es requerido
+              </div>
+              <div [hidden]="!diagnosticAssistanceForm.controls.quantity.errors['minlength']">
+                La documento debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+          <div class="form-group span-2">
+            <label class="checkbox-label">
+              <input type="checkbox" id="active" [formControl]="procedureForm.controls.requiresSpecialistAssistance">
+              <span>Requiere asistencia de especialista</span>
+            </label>
+          </div>
+          <div class="form-group" *ngIf="procedureForm.controls.requiresSpecialistAssistance.value">
+            <label class="form-label">
+              Documento del especialista *
+            </label>
+            <input type="number" class="form-input" name="specialistId"
+              [formControl]="procedureForm.controls.specialistId">
+            <div *ngIf="procedureForm.controls.specialistId.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div *ngIf="procedureForm.controls.specialistId.errors['required']">
+                El valor es requerido
+              </div>
+              <div *ngIf="procedureForm.controls.specialistId.errors['minlength']">
+                La documento debe tener más de 8 caracteres
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Precio *</label>
+            <input type="text" class="form-input" name="price" required
+              [formControl]="diagnosticAssistanceForm.controls.price">
+            <div *ngIf="diagnosticAssistanceForm.controls.price.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!diagnosticAssistanceForm.controls.price.errors['required']">
+                El precio es requerido
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" (click)="closeDiagnosticModal()">Cancelar</button>
+          <button type="submit" class="btn-primary">Registrar Ayuda Diagnóstica</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<app-error [show]="showErrorModal" [title]="errorTitle" [message]="errorMessage" (close)="closeErrorModal()">
+</app-error>

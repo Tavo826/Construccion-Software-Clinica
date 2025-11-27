@@ -1,0 +1,588 @@
+<div class="admin-container">
+
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <h1 class="page-title">Gestión de Pacientes</h1>
+        <p class="page-subtitle">Personal Administrativo</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-primary" (click)="openCreatePatientModal()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Nuevo Paciente
+        </button>
+        <button class="btn-secondary" (click)="logout()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+  </header>
+
+
+  @if (activeTab === 'patients') {
+
+  <section class="search-section">
+    <div class="search-bar">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.35-4.35" />
+      </svg>
+      <input type="text" class="search-input" placeholder="Buscar por documento" [(ngModel)]="searchTerm">
+    </div>
+
+    <button class="btn-primary" (click)="findPatientById()">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="10" r="8" />
+        <line x1="15" y1="15" x2="20" y2="20" />
+      </svg>
+      Buscar
+    </button>
+
+    <button class="btn-secondary" (click)="loadPatients()">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+      Cancelar
+    </button>
+  </section>
+
+  @if (!isLoading) {
+  <section class="content-section">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Cédula</th>
+            <th>Nombre Completo</th>
+            <th>Género</th>
+            <th>Teléfono</th>
+            <th>Email</th>
+            <th>Seguro</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr *ngFor="let patient of patientList" class="table-row">
+            <td>{{ patient.documentId }}</td>
+            <td>
+              <div class="patient-name">
+                <span>{{ patient.name }} {{ patient.surname }}</span>
+              </div>
+            </td>
+            <td>{{ patient.gender }}</td>
+            <td>{{ patient.phone }}</td>
+            <td>{{ patient.email }}</td>
+            <td>
+              <span class="badge" [ngClass]="patient.healthInsurance.active ? 'badge-active' : 'badge-inactive'">{{
+                patient.healthInsurance.active }}</span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon-action btn-view" title="Ver detalles" (click)="openEditPatientModal(patient)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                <button class="btn-icon-action btn-bill" title="Ver facturas" (click)="switchTab('invoices', patient)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="18" rx="2" />
+                    <line x1="8" y1="7" x2="16" y2="7" />
+                    <line x1="8" y1="11" x2="16" y2="11" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  }@else {
+  <app-loading></app-loading>
+  }
+  }
+
+
+  @if (activeTab === 'invoices') {
+
+  <section class="content-section">
+    <button class="btn-close" (click)="switchTab('patients', null)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Paciente</th>
+            <th>Médico</th>
+            <th>Estado Póliza</th>
+            <th>Total</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="table-row">
+            <td>{{ invoice?.creationDate }}</td>
+            <td>
+              <div class="patient-info">
+                <strong>{{ invoice?.details?.patient?.name }} {{ invoice?.details?.patient?.surname }}</strong>
+                <small>{{ invoice?.patientId }}</small>
+              </div>
+            </td>
+            <td>{{ invoice?.employeeId }}</td>
+            <td>
+              <span class="badge"
+                [ngClass]="invoice?.details?.patient?.healthInsurance?.active ? 'badge-active' : 'badge-inactive'">
+                {{ invoice?.details?.patient?.healthInsurance?.active }}
+              </span>
+            </td>
+            <td class="total-amount">${{ invoice?.payment?.totalPayment }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon-action btn-view" title="Ver factura" (click)="openInvoiceModal(invoice!)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  }
+
+  <div class="modal-overlay" [class.active]="showPatientModal">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ isEditMode ? 'Editar Paciente' : 'Nuevo Paciente' }}</h2>
+        <button class="btn-close" (click)="closePatientModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <form class="modal-form" (submit)="savePatient()" [formGroup]="form">
+
+        <div class="form-section">
+          <h3 class="section-title">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Datos Personales
+          </h3>
+
+          <div class="form-grid">
+            <div class="form-group span-2">
+              <label for="name" class="form-label">Nombres *</label>
+              <input type="text" id="name" class="form-input" placeholder="Ingrese nombres" required
+                [formControl]="form.controls.name">
+              <div *ngIf="form.controls.name.errors && isSubmitted" class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.name.errors['required']">
+                  El nombre es requerido
+                </div>
+                <div [hidden]="!form.controls.name.errors['minlength']">
+                  El nombre debe tener más de 3 caracteres
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group span-2">
+              <label for="surname" class="form-label">Apellidos *</label>
+              <input type="text" id="surname" class="form-input" placeholder="Ingrese apellidos" required
+                [formControl]="form.controls.surname">
+              <div *ngIf="form.controls.surname.errors && isSubmitted" class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.surname.errors['required']">
+                  El apellido es requerido
+                </div>
+                <div [hidden]="!form.controls.surname.errors['minlength']">
+                  El apellido debe tener más de 3 caracteres
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="documentId" class="form-label">Número de Cédula *</label>
+              <input type="text" id="documentId" class="form-input" placeholder="Ingrese documento" maxlength="10"
+                required [formControl]="form.controls.documentId">
+              <div *ngIf="form.controls.documentId.errors && isSubmitted"
+                class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.documentId.errors['required']">
+                  El documento es requerido
+                </div>
+                <div [hidden]="!form.controls.documentId.errors['minlength']">
+                  El documento debe tener más de 8 caracteres
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="birthDate" class="form-label">Fecha de Nacimiento *</label>
+              <input type="date" id="birthDate" class="form-input" required [formControl]="form.controls.birthDate">
+              <div *ngIf="form.controls.birthDate.errors && isSubmitted"
+                class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.birthDate.errors['required']">
+                  La fecha de nacimiento es requerida
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="gender" class="form-label">Género *</label>
+              <select id="gender" class="form-input" required [formControl]="form.controls.gender">
+                <option value="">Seleccione</option>
+                <option value="MALE">Masculino</option>
+                <option value="FEMALE">Femenino</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="phone" class="form-label">Teléfono *</label>
+              <input type="tel" id="phone" class="form-input" placeholder="Ingrese teléfono" maxlength="10" required
+                [formControl]="form.controls.phone">
+              <div *ngIf="form.controls.phone.errors && isSubmitted" class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.phone.errors['required']">
+                  El teléfono es requerido
+                </div>
+                <div [hidden]="!form.controls.phone.errors['minlength']">
+                  El teléfono debe tener más de 7 caracteres
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group span-2">
+              <label for="address" class="form-label">Dirección *</label>
+              <input type="text" id="address" class="form-input" placeholder="Ingrese dirección" required
+                [formControl]="form.controls.address">
+              <div *ngIf="form.controls.address.errors && isSubmitted" class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.address.errors['required']">
+                  La dirección es requerida
+                </div>
+                <div [hidden]="!form.controls.address.errors['minlength']">
+                  La dirección debe tener más de 3 caracteres
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group span-2">
+              <label for="email" class="form-label">Correo Electrónico</label>
+              <input type="email" id="email" class="form-input" placeholder="Ingrese correo"
+                [formControl]="form.controls.email">
+              <div *ngIf="form.controls.email.errors && isSubmitted" class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.email.errors['required']">
+                  El correo es requerido
+                </div>
+                <div [hidden]="!form.controls.email.errors['email']">
+                  Ingese un correo válido
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="form-section">
+          <h3 class="section-title">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+            Contacto de Emergencia
+          </h3>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="contactName" class="form-label">Nombre *</label>
+              <input type="text" id="contactName" class="form-input" placeholder="Nombre completo" required
+                [formControl]="form.controls.emergencyContact.controls.name">
+              <div *ngIf="form.controls.emergencyContact.controls.name.errors && isSubmitted"
+                class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.emergencyContact.controls.name.errors['required']">
+                  El nombre es requerido
+                </div>
+                <div [hidden]="!form.controls.emergencyContact.controls.name.errors['minlength']">
+                  El nombre debe tener más de 3 caracteres
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="contactSurname" class="form-label">Apellidos *</label>
+              <input type="text" id="contactSurname" class="form-input" placeholder="Ingrese apellidos" required
+                [formControl]="form.controls.emergencyContact.controls.surname">
+              <div *ngIf="form.controls.emergencyContact.controls.surname.errors && isSubmitted"
+                class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.emergencyContact.controls.surname.errors['required']">
+                  El apellido es requerido
+                </div>
+                <div [hidden]="!form.controls.emergencyContact.controls.surname.errors['minlength']">
+                  El apellido debe tener más de 3 caracteres
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="relationship" class="form-label">Relación *</label>
+              <input type="text" id="relationship" class="form-input" placeholder="Ingrese relación" required
+                [formControl]="form.controls.emergencyContact.controls.relationship">
+              <div *ngIf="form.controls.emergencyContact.controls.relationship.errors && isSubmitted"
+                class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.emergencyContact.controls.relationship.errors['required']">
+                  La relación es requerida
+                </div>
+                <div [hidden]="!form.controls.emergencyContact.controls.relationship.errors['minlength']">
+                  La relación debe tener más de 3 caracteres
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="contactPhone" class="form-label">Teléfono *</label>
+              <input type="tel" id="contactPhone" class="form-input" placeholder="Ingresar teléfono" maxlength="10"
+                required [formControl]="form.controls.emergencyContact.controls.phone">
+              <div *ngIf="form.controls.emergencyContact.controls.phone.errors && isSubmitted"
+                class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.emergencyContact.controls.phone.errors['required']">
+                  El teléfono es requerido
+                </div>
+                <div [hidden]="!form.controls.emergencyContact.controls.phone.errors['minlength']">
+                  El teléfono debe tener más de 7 caracteres
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="form-section">
+          <h3 class="section-title">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            Seguro Médico
+          </h3>
+
+          <div class="form-grid">
+            <div class="form-group span-2">
+              <label for="companyName" class="form-label">Compañía de Seguros</label>
+              <input type="text" id="companyName" class="form-input" placeholder="Nombre de la aseguradora"
+                [formControl]="form.controls.healthInsurance.controls.companyName">
+              <div *ngIf="form.controls.healthInsurance.controls.companyName.errors && isSubmitted"
+                class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.healthInsurance.controls.companyName.errors['required']">
+                  El nombre es requerido
+                </div>
+                <div [hidden]="!form.controls.healthInsurance.controls.companyName.errors['minlength']">
+                  El nombre debe tener más de 3 caracteres
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="policyNumber" class="form-label">Número de Póliza</label>
+              <input type="text" id="policyNumber" class="form-input" placeholder="Número de póliza"
+                [formControl]="form.controls.healthInsurance.controls.policyNumber">
+              <div *ngIf="form.controls.healthInsurance.controls.policyNumber.errors && isSubmitted"
+                class="alert alert-danger validationError mt-2">
+                <div [hidden]="!form.controls.healthInsurance.controls.policyNumber.errors['required']">
+                  El número de póliza es requerido
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="policyValidity" class="form-label">Vigencia de Póliza</label>
+              <input type="date" id="policyValidity" class="form-input"
+                [formControl]="form.controls.healthInsurance.controls.policyValidity">
+            </div>
+
+            <div class="form-group span-2">
+              <label class="checkbox-label">
+                <input type="checkbox" id="active" [formControl]="form.controls.healthInsurance.controls.active">
+                <span>Póliza Activa</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" (click)="closePatientModal()">Cancelar</button>
+          <button type="submit" class="btn-primary">
+            {{ isEditMode ? 'Actualizar Paciente' : 'Crear Paciente' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <div class="modal-overlay" [class.active]="showInvoiceModal">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <h2 class="modal-title">Factura Detallada</h2>
+        <button class="btn-close" (click)="closeInvoiceModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="bill-content">
+
+        <div class="bill-header">
+          <div class="clinic-info">
+            <h2>Clínica Salud Total</h2>
+            <p>NIT: 900.123.456-7</p>
+            <p>Dirección: Calle 100 #50-25</p>
+            <p>Tel: (601) 1234567</p>
+          </div>
+          <div class="bill-number">
+            <h3>FACTURA</h3>
+            <p>No. {{ selectedInvoice?.id }}</p>
+            <p>Fecha: {{ selectedInvoice?.creationDate }}</p>
+          </div>
+        </div>
+
+
+        <div class="bill-section">
+          <h4>Información del Paciente</h4>
+          <div class="info-grid">
+            <div><strong>Nombre:</strong> {{ selectedInvoice?.details?.patient?.name }} {{ selectedInvoice?.details?.patient?.surname }}</div>
+            <div><strong>Edad:</strong> {{ selectedInvoice?.details?.patient?.age }} años</div>
+            <div><strong>Cédula:</strong> {{ selectedInvoice?.details?.patient?.documentId }}</div>
+            <div><strong>Teléfono:</strong> {{ selectedInvoice?.details?.patient?.phone }}</div>
+          </div>
+        </div>
+
+
+        <div class="bill-section">
+          <h4>Médico Tratante</h4>
+          <p>{{ selectedInvoice?.details?.employee?.name }} {{ selectedInvoice?.details?.employee?.surname }}</p>
+        </div>
+
+
+        <div class="bill-section">
+          <h4>Información del Seguro</h4>
+          <div class="info-grid">
+            <div><strong>Aseguradora:</strong> {{ selectedInvoice?.details?.patient?.healthInsurance?.companyName }}</div>
+            <div><strong>Póliza:</strong> {{ selectedInvoice?.details?.patient?.healthInsurance?.policyNumber }}</div>
+            <div><strong>Estado:</strong> <span class="badge"
+              [ngClass]="selectedInvoice?.details?.patient?.healthInsurance?.active ? 'badge-active' : 'badge-inactive'">
+              {{ selectedInvoice?.details?.patient?.healthInsurance?.active ? 'Activa' : 'Inactiva' }}
+            </span></div>
+            <div *ngIf="selectedInvoice?.details?.patient?.healthInsurance?.active">
+              <strong>Vigencia:</strong> {{ selectedInvoice?.details?.patient?.healthInsurance?.policyValidityDays }} días restantes</div>
+          </div>
+        </div>
+
+        <div *ngIf="selectedInvoice?.details?.order?.orderMedicineList" class="bill-section">
+          <h4>Medicamentos</h4>
+          <table class="bill-table">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Dosis</th>
+                <th>Duración tratamiento</th>
+                <th>Valor Unit.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of selectedInvoice?.details?.order?.orderMedicineList">
+                <td>{{ order.medicineName }}</td>
+                <td>{{ order.dose }}</td>
+                <td>{{ order.treatmentDuration }}</td>
+                <td>{{ order.price }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div *ngIf="selectedInvoice?.details?.order?.orderProcedureList" class="bill-section">
+          <h4>Procedimientos</h4>
+          <table class="bill-table">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Repeticiones</th>
+                <th>Fecuencia</th>
+                <th>Valor Unit.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of selectedInvoice?.details?.order?.orderProcedureList">
+                <td>{{ order.procedureName }}</td>
+                <td>{{ order.repetitionNumber }}</td>
+                <td>{{ order.repetitionFrequency }}</td>
+                <td>{{ order.price }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div *ngIf="selectedInvoice?.details?.order?.orderDiagnosticAssistanceList" class="bill-section">
+          <h4>Ayuda Diagnóstica</h4>
+          <table class="bill-table">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Cantidad</th>
+                <th>Valor Unit.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of selectedInvoice?.details?.order?.orderDiagnosticAssistanceList">
+                <td>{{ order.diagnosticAssistanceName }}</td>
+                <td>{{ order.quantity }}</td>
+                <td>{{ order.price }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+
+        <div class="bill-totals">
+          <div class="total-row">
+            <span>Copago (Póliza Activa):</span>
+            <strong>${{ selectedInvoice?.payment?.coPayment }}</strong>
+          </div>
+          <div class="total-row">
+            <span>Aseguradora cubre:</span>
+            <strong>${{ selectedInvoice?.payment?.insurePayment }}</strong>
+          </div>
+          <div class="total-row highlight">
+            <span>Total del pago:</span>
+            <strong>${{ selectedInvoice?.payment?.totalPayment }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeInvoiceModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<app-error [show]="showErrorModal" [title]="errorTitle" [message]="errorMessage"
+  (close)="closeErrorModal()"></app-error>

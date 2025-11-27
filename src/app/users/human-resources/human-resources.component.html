@@ -1,0 +1,403 @@
+<div class="rrhh-container">
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-title-section">
+        <h1 class="page-title">Gestión de Empleados</h1>
+        <p class="page-subtitle">Recursos Humanos</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-primary" (click)="openCreateModal()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Nuevo Empleado
+        </button>
+        <button class="btn-secondary" (click)="logout()">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <section class="search-section">
+    <div class="search-bar">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Buscar por nombre, cédula o usuario..."
+        [(ngModel)]="searchTerm"
+      >
+    </div>
+    
+    <button class="btn-primary" (click)="findEmployeeById()">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="10" r="8"/>
+        <line x1="15" y1="15" x2="20" y2="20"/>
+      </svg>
+      Buscar
+    </button>
+
+    <button class="btn-secondary" (click)="loadEmployees()">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+      Cancelar
+    </button>
+  </section>
+
+  <app-error
+    [show]="showErrorModal" 
+    [title]="errorTitle"
+    [message]="errorMessage" 
+    (close)="closeErrorModal()">
+  </app-error>
+
+  @if (!isLoading) {
+  <section class="employees-section">
+    <div class="table-container">
+      <table class="employees-table">
+        <thead>
+          <tr>
+            <th>Cédula</th>
+            <th>Nombre Completo</th>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr *ngFor="let employee of employeeList" class="table-row">
+            <td>{{ employee.documentId }}</td>
+            <td>
+              <div class="employee-name">
+                <span>{{ employee.name }} {{ employee.surname }}</span>
+              </div>
+            </td>
+            <td>{{ employee.username }}</td>
+            <td><span class="badge badge-medico">{{ employee.role }}</span></td>
+            <td>{{ employee.email }}</td>
+            <td>{{ employee.phone }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon-action btn-edit" title="Editar" (click)="openEditModal(employee)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+                <button class="btn-icon-action btn-delete" title="Eliminar" (click)="openDeleteModal(employee)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  }@else {
+    <app-loading></app-loading>
+  }
+
+  <div class="modal-overlay" [class.active]="showModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ isEditMode ? 'Editar Empleado' : 'Nuevo Empleado' }}</h2>
+        <button class="btn-close" (click)="closeModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form (submit)="saveEmployee()" class="modal-form" [formGroup]="form">
+        <div class="form-grid">
+          <div class="form-group span-2">
+            <label for="name" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Nombres *
+            </label>
+            <input type="text" id="name" class="form-input" placeholder="Ingrese nombre" required
+              [formControl]="form.controls.name">
+            <div *ngIf="form.controls.name.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.name.errors['required']">
+                  El nombre es requerido
+              </div>
+              <div [hidden]="!form.controls.name.errors['minlength']">
+                  El nombre debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group span-2">
+            <label for="surname" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Apellidos *
+            </label>
+            <input type="text" id="surname" class="form-input" placeholder="Ingrese apellidos" required
+              [formControl]="form.controls.surname">
+            <div *ngIf="form.controls.surname.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.surname.errors['required']">
+                  El apellido es requerido
+              </div>
+              <div [hidden]="!form.controls.surname.errors['minlength']">
+                  El apellido debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="documentId" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+              </svg>
+              Número de documento *
+            </label>
+            <input [readOnly]="isEditMode" type="text" id="documentId" class="form-input" placeholder="Ingrese documento" maxlength="10" required
+              [formControl]="form.controls.documentId">
+            <div *ngIf="form.controls.documentId.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.documentId.errors['required']">
+                  El documento es requerido
+              </div>
+              <div [hidden]="!form.controls.documentId.errors['minlength']">
+                  El documento debe tener más de 8 caracteres
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="birthDate" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              Fecha de Nacimiento *
+            </label>
+            <input type="date" id="birthDate" class="form-input" required
+              [formControl]="form.controls.birthDate">
+            <div *ngIf="form.controls.birthDate.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.birthDate.errors['required']">
+                  La fecha de nacimiento es requerida
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              Correo Electrónico *
+            </label>
+            <input type="email" id="email" class="form-input" placeholder="Ingrese correo" required
+              [formControl]="form.controls.email">
+            <div *ngIf="form.controls.email.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.email.errors['required']">
+                  El correo es requerido
+              </div>
+              <div [hidden]="!form.controls.email.errors['email']">
+                  Ingese un correo válido
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="phone" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              Número de teléfono *
+            </label>
+            <input type="tel" id="phone" class="form-input" placeholder="Ingrese teléfono" maxlength="10" required
+              [formControl]="form.controls.phone">
+            <div *ngIf="form.controls.phone.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.phone.errors['required']">
+                  El teléfono es requerido
+              </div>
+              <div [hidden]="!form.controls.phone.errors['minlength']">
+                  El teléfono debe tener más de 7 caracteres
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group span-2">
+            <label for="address" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              Dirección *
+            </label>
+            <input type="text" id="address" class="form-input" placeholder="address" maxlength="30" required
+              [formControl]="form.controls.address">
+            <div *ngIf="form.controls.address.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.address.errors['required']">
+                  La dirección es requerida
+              </div>
+              <div [hidden]="!form.controls.address.errors['minlength']">
+                  La dirección debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="role" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              Rol *
+            </label>
+            <select id="role" class="form-input" required
+              [formControl]="form.controls.role">
+              <option value="">Seleccione un rol</option>
+              <option value="DOCTOR">Médico</option>
+              <option value="NURSE">Enfermera</option>
+              <option value="ADMINISTRATIVE">Personal Administrativo</option>
+              <option value="INFORMATION_SUPPORT">Soporte de Información</option>
+              <option value="HUMAN_RESOURCE">Recursos Humanos</option>
+            </select>
+            <div *ngIf="form.controls.role.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.role.errors['required']">
+                  El rol es requerido
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="username" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Nombre de Usuario *
+            </label>
+            <input type="text" id="username" class="form-input" placeholder="Ingrese usuario" maxlength="15" required
+              [formControl]="form.controls.username">
+            <div *ngIf="form.controls.username.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.username.errors['required']">
+                  El nombre de usuario es requerido
+              </div>
+              <div [hidden]="!form.controls.username.errors['minlength']">
+                  El nombre de usuario debe tener más de 3 caracteres
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group span-2">
+            <label for="password" class="form-label">
+              <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              Contraseña *
+            </label>
+            <div class="password-container">
+              <input [type]="showPassword ? 'text' : 'password'" id="password" class="form-input" placeholder="Mínimo 8 caracteres" required
+                [formControl]="form.controls.password">
+              <button type="button" class="toggle-password" (click)="togglePassword()" aria-label="Mostrar contraseña">
+            @if (!showPassword) {
+              <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            } @else {
+              <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            }
+          </button>
+            </div>
+            <div *ngIf="form.controls.password.errors && isSubmitted"
+              class="alert alert-danger validationError mt-2">
+              <div [hidden]="!form.controls.password.errors['required']">
+                  La contraseña es requerida
+              </div>
+              <div [hidden]="!form.controls.password.errors['minlength']">
+                  La contraseña debe tener más de 8 caracteres
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-primary">
+            {{ isEditMode ? 'Actualizar Empleado' : 'Crear Empleado' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" [class.active]="showDeleteModal">
+    <div class="modal modal-small">
+      <div class="modal-header">
+        <h2 class="modal-title">Confirmar Eliminación</h2>
+        <button class="btn-close" (click)="closeDeleteModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="delete-warning">
+          <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p class="warning-text">¿Está seguro que desea eliminar este empleado?</p>
+          <p class="warning-subtext">Esta acción no se puede deshacer.</p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
+        <button type="button" class="btn-danger" (click)="confirmDelete()">Eliminar Empleado</button>
+      </div>
+    </div>
+  </div>
+</div>
